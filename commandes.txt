@@ -1,8 +1,8 @@
 set ylabel "Time"
-set xlabel "Degree of the polynome"
-set title "Graph of the time taken for different degrees of polynomes in FLINT with a fixed size of bits = 60 and generated using nmod\_poly\_init"
-plot "bench_mult_div_flint.txt" using 1:2 title 'Multiplication' with lines, \
-	"bench_mult_div_flint.txt" using 1:3 title 'Division' with lines
+set xlabel "Matrix size"
+set title "Comparaison between PCR and Thomas method for computing solutions for various tridiagonal systems"
+plot "timing_data2.txt" using 1:2 title 'Thomas method' with lines, \
+    "timing_data2.txt" using 1:3 title 'PCR' with lines
 set term postscript portrait
-set output "NTL.ps"
+set output "PCR_Thomas.ps"
 set size 0.7, 0.7
