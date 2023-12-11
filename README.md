@@ -6,6 +6,7 @@ The goal of this project is to develop a deeper understanding of Partial Differe
 ## Files and implemented functions
 - pde.cu : first implementation of Thomas' algorithm and the PCR on 2 simple examples (one commented), this allows us to see that the algorithm does actually work before implementing it on more matrices
 - pde_final.cu : second implementation on more randomely generated cases and also speed measurment
+- pde_final2.cu : second exercise
 
 ## Run the program
 
@@ -32,4 +33,4 @@ gnuplot -p < commandes.txt
 
 In our analysis we decided to look at randomely generated fixed size systems and varied the number of tridiagonal systems we were going to solve at the same time. As such, we varied the number of systems from 200 to 1024 (the maximum number of threads).
 Here is a representation of our results :
- 
+

@@ -34,6 +34,7 @@ void testCUDA(cudaError_t error, const char *file, int line)  {
 }
 
 /**
+ * Question 1
  * Code to generate random values for our matrices
 */
 void generateTridiagonalSystemsThomas(float* h_a_f, float* h_b_f, float* h_c_f, float* h_y_f, int systemSize, int numSystems) {
@@ -110,6 +111,7 @@ __global__ void thomasAlgorithmPerBlock(float* a, float* b, float* c, float* y, 
 }
 
 /**
+ * Question 1
  * Thomas algorithm separated on threads
 */
 __global__ void thomasAlgorithmPerThread(float* a, float* b, float* c, float* y, float* x, int n, int numSystems) {
@@ -142,6 +144,7 @@ __global__ void thomasAlgorithmPerThread(float* a, float* b, float* c, float* y,
 
 
 /**
+ * Question 1
  * PCR
 | b0 c0  0   0 |   | x0 |   | y0 |
 | a1 b1 c1  0 | * | x1 | = | y1 |
@@ -210,6 +213,7 @@ __device__ void PCR_d(float* sa, float* sd, float* sc, float* sy, int* sl, int n
 }
 
 /**
+ * Question 1
  * PCR wrapper so we can call PCR, since __device__ functions
  * are functions that can be called from other device or global
  * functions and are executed on the device.
