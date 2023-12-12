@@ -37,7 +37,7 @@ gnuplot -p < commandes.txt
 
 ## Analysis
 
-In our analysis we decided to look at randomely generated fixed size systems and varied the number of tridiagonal systems we were going to solve at the same time. As such, we varied the number of systems from 20 to 1024 (the maximum number of threads).
+In our analysis we decided to look at randomely generated fixed size systems and varied the number of tridiagonal systems we were going to solve at the same time. As such, we varied the number of systems (from 20 to 1024, the maximum number of threads).
 Here is a representation of our results :
 
 ![Comparison betweeen PCR and Thomas' method](PCR_Thomas.png)
