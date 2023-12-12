@@ -43,5 +43,6 @@ Here is a representation of our results :
 ![Comparison betweeen PCR and Thomas' method](PCR_Thomas.png)
 
 Here we can see that Thomas' algorithm is in O(n) and the PCR is in O(log(n)). 
-The curve for Thomas' algorithm has a few irregularities which can be smoothed out by picking values of power 2.
+The curve for Thomas' algorithm has a few irregularities which can be smoothed out by picking values of power 2. The method is illustrated here :
 
+![Comparison betweeen PCR and Thomas' method (smooth)](PCR_Thomas2.png)
