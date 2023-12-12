@@ -12,30 +12,30 @@
 */
 void  print_arr(float *arr, int size)
 {
-  for(int i = 0; i < size; ++i)
-    printf("%f ", arr[i]);
-  printf("\n");
+	for(int i = 0; i < size; ++i)
+		printf("%f ", arr[i]);
+	printf("\n");
 }
 
 /**
  * Catch CUDA errors
 */
 void testCUDA(cudaError_t error, const char *file, int line)  {
-    if (error != cudaSuccess)
+	if (error != cudaSuccess)
 	{
-       printf("There is an error in file %s at line %d\n", file, line);
-       printf("%s\n", cudaGetErrorName(error));
-       printf("%s\n", cudaGetErrorString(error));
-       exit(EXIT_FAILURE);
-    } 
+		printf("There is an error in file %s at line %d\n", file, line);
+		printf("%s\n", cudaGetErrorName(error));
+		printf("%s\n", cudaGetErrorString(error));
+		exit(EXIT_FAILURE);
+	} 
 }
 
 /**
  * Code to generate random values for our matrices
 */
 void fillArrayWithRandomValues(float* array, int size) {
-    for (int i = 0; i < size; i++)
-        array[i] = (float)rand() / RAND_MAX * 10.0; // Random float between 0 and 10
+	for (int i = 0; i < size; i++)
+		array[i] = (float)rand() / RAND_MAX * 10.0; // Random float between 0 and 10
 }
 
 #define testCUDA(error) (testCUDA(error, __FILE__ , __LINE__))
@@ -44,25 +44,25 @@ void fillArrayWithRandomValues(float* array, int size) {
  * Thomas algorithm separated on blocks
 */
 __global__ void thomasAlgorithmPerBlock(float* a, float* b, float* c, float* y, float* x, int n) {
-    int systemIndex = blockIdx.x * n;
+	int systemIndex = blockIdx.x * n;
 
-    // Forward phase
-    c[systemIndex] = c[systemIndex] / b[systemIndex];
-    y[systemIndex] = y[systemIndex] / b[systemIndex];
+	// Forward phase
+	c[systemIndex] = c[systemIndex] / b[systemIndex];
+	y[systemIndex] = y[systemIndex] / b[systemIndex];
 
-    for (int i = 1; i < n; i++) {
-        int idx = systemIndex + i;
-        float m = 1.0 / (b[idx] - a[idx] * c[idx - 1]);
-        c[idx] = c[idx] * m;
-        y[idx] = (y[idx] - a[idx] * y[idx - 1]) * m;
-    }
+	for (int i = 1; i < n; i++) {
+		int idx = systemIndex + i;
+		float m = 1.0 / (b[idx] - a[idx] * c[idx - 1]);
+		c[idx] = c[idx] * m;
+		y[idx] = (y[idx] - a[idx] * y[idx - 1]) * m;
+	}
 
-    // Backward phase
-    x[systemIndex + n - 1] = y[systemIndex + n - 1];
-    for (int i = n - 2; i >= 0; i--) {
-        int idx = systemIndex + i;
-        x[idx] = y[idx] - c[idx] * x[idx + 1];
-    }
+	// Backward phase
+	x[systemIndex + n - 1] = y[systemIndex + n - 1];
+	for (int i = n - 2; i >= 0; i--) {
+		int idx = systemIndex + i;
+		x[idx] = y[idx] - c[idx] * x[idx + 1];
+	}
 }
 
 /**
@@ -70,30 +70,30 @@ __global__ void thomasAlgorithmPerBlock(float* a, float* b, float* c, float* y, 
 */
 __global__ void thomasAlgorithmPerThread(float* a, float* b, float* c, float* y, float* x, int n, int numSystems) {
 	// We choose on which matrix we want to act
-    int systemIndex = threadIdx.x * n;
+	int systemIndex = threadIdx.x * n;
 
-    // Check if the thread is within the range of systems
-    if (threadIdx.x < numSystems) {
-        // Forward phase for system handled by this thread
-        c[systemIndex] = c[systemIndex] / b[systemIndex];
-        y[systemIndex] = y[systemIndex] / b[systemIndex];
+	// Check if the thread is within the range of systems
+	if (threadIdx.x < numSystems) {
+		// Forward phase for system handled by this thread
+		c[systemIndex] = c[systemIndex] / b[systemIndex];
+		y[systemIndex] = y[systemIndex] / b[systemIndex];
 
 		// We calculate the index for each step, to work on the right
 		// matrix we use systemIndex
-        for (int i = 1; i < n; i++) {
-            int idx = systemIndex + i;
-            float m = 1.0 / (b[idx] - a[idx] * c[idx - 1]);
-            c[idx] = c[idx] * m;
-            y[idx] = (y[idx] - a[idx] * y[idx - 1]) * m;
-        }
+		for (int i = 1; i < n; i++) {
+			int idx = systemIndex + i;
+			float m = 1.0 / (b[idx] - a[idx] * c[idx - 1]);
+			c[idx] = c[idx] * m;
+			y[idx] = (y[idx] - a[idx] * y[idx - 1]) * m;
+		}
 
-        // Backward phase for system handled by this thread
-        x[systemIndex + n - 1] = y[systemIndex + n - 1];
-        for (int i = n - 2; i >= 0; i--) {
-            int idx = systemIndex + i;
-            x[idx] = y[idx] - c[idx] * x[idx + 1];
-        }
-    }
+		// Backward phase for system handled by this thread
+		x[systemIndex + n - 1] = y[systemIndex + n - 1];
+		for (int i = n - 2; i >= 0; i--) {
+			int idx = systemIndex + i;
+			x[idx] = y[idx] - c[idx] * x[idx + 1];
+		}
+	}
 }
 
 
@@ -171,65 +171,63 @@ __device__ void PCR_d(float* sa, float* sd, float* sc, float* sy, int* sl, int n
  * functions and are executed on the device.
  * They can't be called directly from "host".
 */
-
-#define N 4
-
 __global__ void PCR_kernel(float* sa, float* sd, float* sc, float* sy, int* sl, int n) {
-    __shared__ float shared_sa[N];
-    __shared__ float shared_sd[N];
-    __shared__ float shared_sc[N];
-    __shared__ float shared_sy[N];
-    __shared__ int shared_sl[N];
+	__shared__ float shared_sa[N];
+	__shared__ float shared_sd[N];
+	__shared__ float shared_sc[N];
+	__shared__ float shared_sy[N];
+	__shared__ int shared_sl[N];
 
 	int idx = threadIdx.x + blockIdx.x * blockDim.x;
-    shared_sa[threadIdx.x] = sa[idx];
-    shared_sd[threadIdx.x] = sd[idx];
-    shared_sc[threadIdx.x] = sc[idx];
-    shared_sy[threadIdx.x] = sy[idx];
+	shared_sa[threadIdx.x] = sa[idx];
+	shared_sd[threadIdx.x] = sd[idx];
+	shared_sc[threadIdx.x] = sc[idx];
+	shared_sy[threadIdx.x] = sy[idx];
 	// specify the thread we are working on since sl is based on indexes
-    shared_sl[threadIdx.x] = threadIdx.x;
-    __syncthreads();
+	shared_sl[threadIdx.x] = threadIdx.x;
+	__syncthreads();
 
 	// check if we are within the correct range
 	if (threadIdx.x < n)
-        PCR_d(shared_sa, shared_sd, shared_sc, shared_sy, shared_sl, n);
-    sy[idx] = shared_sy[threadIdx.x];
+		PCR_d(shared_sa, shared_sd, shared_sc, shared_sy, shared_sl, n);
+	sy[idx] = shared_sy[threadIdx.x];
 }
 
 /**
  * Representation of the matrix :
  * 	| b1 c1  0  0 |
 	| a2 b2 c2  0 |
-    |  0 a3 b3 c3 |
-    |  0  0 a4 b4 |
+	|  0 a3 b3 c3 |
+	|  0  0 a4 b4 |
 */
 int main()
 {
-    const int n = 8;
-    float h_x[n];
+	const int n = 8;
+	float h_x[n];
 	int h_l[n];
 
 	// 2 matrices in one (simple matrices 4 * 4)
-    float h_a[n] = {0, 1, 1, 1, 0, 1, 1, 1};
-    float h_b[n] = {4, 4, 4, 4, 4, 4, 4, 4};
-    float h_c[n] = {1, 2, 3, 0, 1, 2, 3, 0};
-    float h_y[n] = {1, 2, 2, 1, 1, 2, 2, 1};
-
-	srand(time(NULL)); // Seed the random number generator
-
 	// values for Thomas' algorithm
-  	// in our implementation, a must be of the form {0, _, _, _} and c
-  	// must be {0, _, _, _}
-  	// 
+  	// in our implementation, a must be of the form {0, _, _, _} 
+	// and c must be {_, _, _, 0} (to respect the n - 1 size)
+	float h_a[n] = {0, 1, 1, 1, 0, 1, 1, 1};
+	float h_b[n] = {4, 4, 4, 4, 4, 4, 4, 4};
+	float h_c[n] = {1, 2, 3, 0, 1, 2, 3, 0};
+	float h_y[n] = {1, 2, 2, 1, 1, 2, 2, 1};
+
+	srand(time(NULL)); // Seed of the random number generator
+
+	// 1 matrix of size 4 * 4
 	// float h_a[n] = {0, 1, 1, 1};
   	// float h_b[n] = {4, 4, 4, 4};
   	// float h_c[n] = {0, 1, 2, 3};
   	// float h_y[n] = {1, 2, 2, 1};
+
 	// fill with random values if you want to try different results
-    // fillArrayWithRandomValues(h_a, n);
-    // fillArrayWithRandomValues(h_b, n);
-    // fillArrayWithRandomValues(h_c, n);
-    // fillArrayWithRandomValues(h_y, n);
+	// fillArrayWithRandomValues(h_a, n);
+	// fillArrayWithRandomValues(h_b, n);
+	// fillArrayWithRandomValues(h_c, n);
+	// fillArrayWithRandomValues(h_y, n);
 
 	// values for PCR algorithm
 	float h_a_f[] = {0, 1, 1, 1, 0, 1, 1, 1};
@@ -237,6 +235,7 @@ int main()
 	float h_c_f[] = {0, 1, 2, 3, 0, 1, 2, 3};
 	float h_y_f[] = {1, 2, 2, 1, 1, 2, 2, 1};
 	
+	// 1 matrix of size 4 * 4 but for PCR
   	// float h_a_f[] = {0, 1, 1, 1};
 	// float h_b_f[] = {4, 4, 4, 4};
 	// float h_c_f[] = {0, 1, 2, 3};
@@ -245,30 +244,31 @@ int main()
 	// it will reflect the new positions of the reduced elements
 	// we just initialize it to {0,1,2,3}
 	for (int i = 0; i < n; i++)
-    	h_l[i] = i;
+		h_l[i] = i;
 
-    float *d_a, *d_b, *d_c, *d_y, *d_x;
-	
 	// Thomas'
-    testCUDA(cudaMalloc((void**)&d_a, n * sizeof(float)));
-    testCUDA(cudaMalloc((void**)&d_b, n * sizeof(float)));
-    testCUDA(cudaMalloc((void**)&d_c, n * sizeof(float)));
-    testCUDA(cudaMalloc((void**)&d_y, n * sizeof(float)));
-    testCUDA(cudaMalloc((void**)&d_x, n * sizeof(float)));
+	// device variables
+	float *d_a, *d_b, *d_c, *d_y, *d_x;
+	testCUDA(cudaMalloc((void**)&d_a, n * sizeof(float)));
+	testCUDA(cudaMalloc((void**)&d_b, n * sizeof(float)));
+	testCUDA(cudaMalloc((void**)&d_c, n * sizeof(float)));
+	testCUDA(cudaMalloc((void**)&d_y, n * sizeof(float)));
+	testCUDA(cudaMalloc((void**)&d_x, n * sizeof(float)));
 
 	testCUDA(cudaMemcpy(d_a, h_a, n * sizeof(float), cudaMemcpyHostToDevice));
-    testCUDA(cudaMemcpy(d_b, h_b, n * sizeof(float), cudaMemcpyHostToDevice));
-    testCUDA(cudaMemcpy(d_c, h_c, n * sizeof(float), cudaMemcpyHostToDevice));
-    testCUDA(cudaMemcpy(d_y, h_y, n * sizeof(float), cudaMemcpyHostToDevice));
-    testCUDA(cudaMemcpy(d_x, h_l, n * sizeof(float), cudaMemcpyHostToDevice));
+	testCUDA(cudaMemcpy(d_b, h_b, n * sizeof(float), cudaMemcpyHostToDevice));
+	testCUDA(cudaMemcpy(d_c, h_c, n * sizeof(float), cudaMemcpyHostToDevice));
+	testCUDA(cudaMemcpy(d_y, h_y, n * sizeof(float), cudaMemcpyHostToDevice));
+	testCUDA(cudaMemcpy(d_x, h_l, n * sizeof(float), cudaMemcpyHostToDevice));
 
 	int numSystems = 2;
-  const int systemSize = n / numSystems;
-    thomasAlgorithmPerThread<<<1, numSystems>>>(d_a, d_b, d_c, d_y, d_x, systemSize, numSystems);
-    cudaDeviceSynchronize();
+	const int systemSize = n / numSystems;
+	thomasAlgorithmPerThread<<<1, numSystems>>>(d_a, d_b, d_c, d_y, d_x, systemSize, numSystems);
+	cudaDeviceSynchronize();
 	testCUDA(cudaMemcpy(h_x, d_x, n * sizeof(float), cudaMemcpyDeviceToHost));
 
 	// PCR
+	// device variables
 	float *d_a_f, *d_b_f, *d_c_f, *d_y_f;
 	int *d_l;
 	testCUDA(cudaMalloc((void**)&d_a_f, n * sizeof(float)));
@@ -277,38 +277,36 @@ int main()
 	testCUDA(cudaMalloc((void**)&d_y_f, n * sizeof(float)));
 	testCUDA(cudaMalloc((void**)&d_l, n * sizeof(int)));
 
-    testCUDA(cudaMemcpy(d_a_f, h_a_f, n * sizeof(float), cudaMemcpyHostToDevice));
-    testCUDA(cudaMemcpy(d_b_f, h_b_f, n * sizeof(float), cudaMemcpyHostToDevice));
-    testCUDA(cudaMemcpy(d_c_f, h_c_f, n * sizeof(float), cudaMemcpyHostToDevice));
-    testCUDA(cudaMemcpy(d_y_f, h_y_f, n * sizeof(float), cudaMemcpyHostToDevice));
+	testCUDA(cudaMemcpy(d_a_f, h_a_f, n * sizeof(float), cudaMemcpyHostToDevice));
+	testCUDA(cudaMemcpy(d_b_f, h_b_f, n * sizeof(float), cudaMemcpyHostToDevice));
+	testCUDA(cudaMemcpy(d_c_f, h_c_f, n * sizeof(float), cudaMemcpyHostToDevice));
+	testCUDA(cudaMemcpy(d_y_f, h_y_f, n * sizeof(float), cudaMemcpyHostToDevice));
 
  	PCR_kernel<<<numSystems, systemSize>>>(d_a_f, d_b_f, d_c_f, d_y_f, d_l, systemSize);
 	cudaDeviceSynchronize();
 	testCUDA(cudaMemcpy(h_y_f, d_y_f, n * sizeof(float), cudaMemcpyDeviceToHost));
 
-    // Display the results
-    printf("Result Thomas: ");
-    for (int i = 0; i < n; i++) {
-        printf("%f " , h_x[i]);
-    }
+	// Display the results
+	printf("Result Thomas: ");
+	for (int i = 0; i < n; i++)
+		printf("%f " , h_x[i]);
 
 	printf("\nResult PCR: ");
-    for (int i = 0; i < n; i++) {
-        printf("%f " , h_y_f[i]);
-    }
+	for (int i = 0; i < n; i++)
+		printf("%f " , h_y_f[i]);
 
-    // Free allocated memory
-    testCUDA(cudaFree(d_a));
-    testCUDA(cudaFree(d_b));
-    testCUDA(cudaFree(d_c));
-    testCUDA(cudaFree(d_y));
-    testCUDA(cudaFree(d_x));
+	// Free allocated memory
+	testCUDA(cudaFree(d_a));
+	testCUDA(cudaFree(d_b));
+	testCUDA(cudaFree(d_c));
+	testCUDA(cudaFree(d_y));
+	testCUDA(cudaFree(d_x));
 
 	testCUDA(cudaFree(d_a_f));
-    testCUDA(cudaFree(d_b_f));
-    testCUDA(cudaFree(d_c_f));
-    testCUDA(cudaFree(d_y_f));
-    testCUDA(cudaFree(d_l));
+	testCUDA(cudaFree(d_b_f));
+	testCUDA(cudaFree(d_c_f));
+	testCUDA(cudaFree(d_y_f));
+	testCUDA(cudaFree(d_l));
 
-    return (0);
+	return (0);
 }
