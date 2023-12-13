@@ -45,7 +45,7 @@ Here is a representation of our results :
 
 We also executed on the GPU of the PPTI, we got : 
 
-![Comparison betweeen PCR and Thomas' method](graphs/PPTII.png)
+![Comparison betweeen PCR and Thomas' method](graphs/PPTI.png)
 
 Which gives us better results because it has less trafic.
 
