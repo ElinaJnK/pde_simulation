@@ -62,8 +62,66 @@ void	print_arr(float *arr, int size)
 	printf("\n");
 }
 
+// Parallel cyclic reduction for implicit part
+__device__ void PCR_d(float* sa, float* sd, float* sc,
+    float* sy, int* sl, int n) {
+
+    int i, lL, d, tL, tR;
+    float aL, dL, cL, yL;
+    float aLp, dLp, cLp, yLp;
+
+    d = (n / 2 + (n % 2)) * (threadIdx.x % 2) + (int)threadIdx.x / 2;
+
+    tL = threadIdx.x - 1;
+    if (tL < 0) tL = 0;
+    tR = threadIdx.x + 1;
+    if (tR >= n) tR = 0;
+
+    for (i = 0; i < (int)(logf((float)n) / logf(2.0f)) + 1; i++) {
+        lL = (int)sl[threadIdx.x];
+
+        aL = sa[threadIdx.x];
+        dL = sd[threadIdx.x];
+        cL = sc[threadIdx.x];
+        yL = sy[threadIdx.x];
+
+        dLp = sd[tL];
+        cLp = sc[tL];
+
+        if (fabsf(aL) > EPS) {
+            aLp = sa[tL];
+            yLp = sy[tL];
+            dL -= aL * cL / dLp;
+            yL -= aL * yLp / dLp;
+            aL = -aL * aLp / dLp;
+            cL = -cLp * cL / dLp;
+        }
+
+        cLp = sc[tR];
+        if (fabsf(cLp) > EPS) {
+            aLp = sa[tR];
+            dLp = sd[tR];
+            yLp = sy[tR];
+            dL -= cLp * aLp / dLp;
+            yL -= cLp * yLp / dLp;
+        }
+        __syncthreads();
+
+        if (i < (int)(logf((float)n) / logf(2.0f))) {
+            sa[d] = aL;
+            sd[d] = dL;
+            sc[d] = cL;
+            sy[d] = yL;
+            sl[d] = (int)lL;
+            __syncthreads();
+        }
+    }
+
+    sy[(int)sl[threadIdx.x]] = yL / dL;
+}
+
 /**
- * Question 3
+ * Question 2
  * PDE
 */
 __global__ void PDE_diff_k4(float dt, float dx, float dsig, float pmin, float pmax, int N, MyTab *pt_GPU, MyTab *pt_GPU2, int M, int count)
@@ -147,25 +205,33 @@ __global__ void find_lim(float xmin, float dx, float B, MyTab *GPUTab2, MyTab *G
 	x = xmin + dx * threadIdx.x;
 	Pk_1 = max(P1 - k, 0);
 	if ((x < B) && (blockIdx.x == P2))
+	{
 		GPUTab[0][P2][threadIdx.x] = 0;
+	}
 	if (blockIdx.x == Pk_1 - 1)
 	{
-		if (x >=  B)
+		if (x >=  B){
 	  		GPUTab[0][Pk_1 - 1][threadIdx.x] = 0;
-		else
-	  		GPUTab[0][Pk_1 - 1][threadIdx.x] = GPUTab2[0][Pk_1][threadIdx.x];
+		}
+		else {
+	  		GPUTab[0][Pk_1 - 1][threadIdx.x] = GPUTab2[0][Pk_1][threadIdx.x] ;
+	  	}
 	}
 	if (((blockIdx.x >= Pk_1) && (blockIdx.x < P2)))
 	{
 		if (x < B)
+		{
 			GPUTab[0][blockIdx.x][threadIdx.x] = GPUTab2[0][blockIdx.x + 1][threadIdx.x];
+		}
+
 	}
 }
 
 
 // Wrapper
 /**
- * Question 3 on all the PDE
+ * Question 2 requires to solve for the PDE on [Tm-1, T), so the loop is done
+ * only once
 */
 void PDE_diff (float dt, float dx, float dsig, float pmin, float pmax, int N, MyTab* CPUTab, int M, float K, float B)
 {
@@ -193,7 +259,7 @@ void PDE_diff (float dt, float dx, float dsig, float pmin, float pmax, int N, My
 	//											  sigmin, N, GPUTab);
 	//PDE_diff_k3<<<NB, NTPB, 5*NTPB*sizeof(float)>>>(dt, dx, dsig, pmin, pmax,
 	//	sigmin, N, GPUTab);
-	for (int i = 1; i <= M; i++)
+	for (int i = 1; i <= 1; i++)
 	{
 		PDE_diff_k4<<<P2+1, NTPB, 6*NTPB*sizeof(float)>>>(dt, dx, dsig, pmin, pmax, N, GPUTab, GPUTab2, M, i);
 		testCUDA(cudaDeviceSynchronize());

@@ -256,7 +256,7 @@ int main()
 	int numSystems = 1024; // default value
 	int totalSize = systemSize * numSystems;
 	float *h_x, *h_a, *h_b, *h_c, *h_y;
-	float *h_x_f, *h_a_f, *h_b_f, *h_c_f, *h_y_f, *h_l;
+	float *h_a_f, *h_b_f, *h_c_f, *h_y_f, *h_l;
 	float *d_a, *d_b, *d_c, *d_y, *d_x;
 	float *d_a_f, *d_b_f, *d_c_f, *d_y_f;
 	int *d_l;
